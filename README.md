@@ -1,10 +1,9 @@
 # Advanced Database Systems Portfolio – MIT 8103
 
-**Student:** Grace Emmanuel
-**Student ID:** 301912877
-**Programme:** Master of Information Technology, Miva Open University
-**Session:** 2026/2027 September Semester
-
+**Student:** Grace Emmanuel<br>
+**Student ID:** 301912877<br>
+**Programme:** Master of Information Technology, Miva Open University<br>
+**Session:** 2026/2027 September Semester<br>
 **Case study:** NairaFlow Digital Bank (fintech platform)
 
 | Portfolio | Topic | Folder |
