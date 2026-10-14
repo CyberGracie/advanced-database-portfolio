@@ -4,6 +4,7 @@
 **Student ID:** 301912877
 **Programme:** Master of Information Technology, Miva Open University
 **Session:** 2026/2027 September Semester
+
 **Case study:** NairaFlow Digital Bank (fintech platform)
 
 | Portfolio | Topic | Folder |
