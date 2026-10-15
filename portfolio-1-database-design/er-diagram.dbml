@@ -1,6 +1,8 @@
 // NairaFlow Digital Bank – ER model (MIT 8103 Portfolio 1)
+// Colour key: blue = customer identity, green = accounts,
+// orange = money movement, grey = operations & audit
 
-Table customers {
+Table customers [headercolor: #1E6FD9] {
   customer_id int [pk, increment]
   first_name varchar(50) [not null]
   last_name varchar(50) [not null]
@@ -12,15 +14,7 @@ Table customers {
   created_at timestamp [not null, default: `now()`]
 }
 
-Table staff {
-  staff_id int [pk, increment]
-  full_name varchar(100) [not null]
-  email varchar(100) [unique, not null]
-  role varchar(30) [not null, note: 'TELLER, OPERATIONS, COMPLIANCE, AUDITOR']
-  created_at timestamp [not null, default: `now()`]
-}
-
-Table kyc_documents {
+Table kyc_documents [headercolor: #1E6FD9] {
   document_id int [pk, increment]
   customer_id int [not null, ref: > customers.customer_id]
   document_type varchar(30) [not null, note: 'NIN, PASSPORT, DRIVERS_LICENCE']
@@ -29,13 +23,13 @@ Table kyc_documents {
   verified_at timestamp
 }
 
-Table account_types {
+Table account_types [headercolor: #1A9E5C] {
   account_type_id int [pk, increment]
   type_name varchar(30) [unique, not null, note: 'SAVINGS, CURRENT, WALLET']
   daily_transfer_limit decimal(15,2) [not null]
 }
 
-Table accounts {
+Table accounts [headercolor: #1A9E5C] {
   account_id int [pk, increment]
   account_number char(10) [unique, not null, note: 'NUBAN']
   customer_id int [not null, ref: > customers.customer_id]
@@ -46,7 +40,7 @@ Table accounts {
   opened_at timestamp [not null, default: `now()`]
 }
 
-Table transactions {
+Table transactions [headercolor: #E07B00] {
   transaction_id bigint [pk, increment]
   reference varchar(30) [unique, not null]
   transaction_type varchar(20) [not null, note: 'DEPOSIT, WITHDRAWAL, TRANSFER, REVERSAL']
@@ -56,7 +50,7 @@ Table transactions {
   completed_at timestamp
 }
 
-Table ledger_entries {
+Table ledger_entries [headercolor: #E07B00] {
   entry_id bigint [pk, increment]
   transaction_id bigint [not null, ref: > transactions.transaction_id]
   account_id int [not null, ref: > accounts.account_id]
@@ -66,7 +60,7 @@ Table ledger_entries {
   created_at timestamp [not null, default: `now()`]
 }
 
-Table transfers {
+Table transfers [headercolor: #E07B00] {
   transfer_id bigint [pk, increment]
   transaction_id bigint [unique, not null, ref: - transactions.transaction_id]
   source_account_id int [not null, ref: > accounts.account_id]
@@ -80,7 +74,7 @@ Table transfers {
   Note: 'Each transfer has EITHER destination_account_id (internal) OR beneficiary_bank_code + beneficiary_account_number (interbank), never both.'
 }
 
-Table reversals {
+Table reversals [headercolor: #E07B00] {
   reversal_id bigint [pk, increment]
   original_transaction_id bigint [unique, not null, ref: - transactions.transaction_id]
   reversal_transaction_id bigint [unique, not null, ref: - transactions.transaction_id]
@@ -89,7 +83,15 @@ Table reversals {
   reversed_at timestamp [not null, default: `now()`]
 }
 
-Table audit_log {
+Table staff [headercolor: #5A6472] {
+  staff_id int [pk, increment]
+  full_name varchar(100) [not null]
+  email varchar(100) [unique, not null]
+  role varchar(30) [not null, note: 'TELLER, OPERATIONS, COMPLIANCE, AUDITOR']
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table audit_log [headercolor: #5A6472] {
   audit_id bigint [pk, increment]
   table_name varchar(50) [not null]
   record_id bigint [not null]
