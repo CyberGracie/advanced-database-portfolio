@@ -1,6 +1,6 @@
 # Portfolio 1: Database Design and Modelling
 
-**Case study:** NairaFlow Digital Bank – see [case-study.md](case-study.md)
+**Case study:** NairaFlow Digital Bank – see [case-study.md](case-study.md)<br>
 **DBMS:** PostgreSQL 18 (managed with pgAdmin 4)
 
 ## Contents
