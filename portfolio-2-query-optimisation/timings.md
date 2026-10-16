@@ -8,3 +8,6 @@
 | Q4 Daily totals |366.663|423.886|332.192|366.663| | | | |
 | Q5 Balance reconciliation |674.672|564.719|552.279|564.719| | | | |
 | Q6 Suspicious activity |291.797|231.687|278.890|278.890| | | | |
+
+**Control (after VACUUM ANALYZE, no indexes):** Q1 = 341.660 ms<br>
+**Write test (50,000 ledger inserts), before indexes:** 1,947.782 ms
