@@ -46,26 +46,26 @@ SELECT account_id, balance FROM accounts WHERE account_id IN (2001, 2003) ORDER 
 -- Simulate a payment-switch timeout AFTER ₦4,000 is debited from 2003
 SELECT send_interbank_transfer(2003, '000013', '0123456789', 'Beneficiary at Other Bank',
                                4000, 'DEMO-IB1', FALSE);
--- Returns a transaction ID. Replace TXID below with it.
+-- Returns a transaction ID. Replace 502006 below with it.
 -- 2003 is now 6000.00 and the transaction is FAILED.
 
 -- B5a. Reversal by a TELLER (staff 4) must be refused
-SELECT reverse_failed_transaction(TXID, 4, 'Switch timeout after debit');
+SELECT reverse_failed_transaction(502006, 4, 'Switch timeout after debit');
 -- Expected error: Staff 4 is not authorised to approve reversals
 
 -- B5b. Reversal by OPERATIONS staff (staff 1) succeeds
-SELECT reverse_failed_transaction(TXID, 1, 'Switch timeout after debit');
+SELECT reverse_failed_transaction(502006, 1, 'Switch timeout after debit');
 
 SELECT t.transaction_id, t.transaction_type, t.status, t.amount,
        r.reason, r.approved_by,
        (SELECT balance FROM accounts WHERE account_id = 2003) AS balance_2003
 FROM transactions t
 LEFT JOIN reversals r ON r.original_transaction_id = t.transaction_id
-WHERE t.transaction_id = TXID;
+WHERE t.transaction_id = 502006;
 -- Expected: status REVERSED, approved_by 1, balance_2003 = 10000.00
 
 -- B5c. A second reversal must be refused
-SELECT reverse_failed_transaction(TXID, 1, 'Second attempt');
+SELECT reverse_failed_transaction(502006, 1, 'Second attempt');
 -- Expected error: Only FAILED transactions can be reversed (status is REVERSED)
 
 
