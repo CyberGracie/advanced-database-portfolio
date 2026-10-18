@@ -2,9 +2,10 @@
 -- NairaFlow – Portfolio 3 concurrency demos
 -- Two psql sessions (pgAdmin PSQL Tool tabs): Session A and Session B.
 -- Run each line in the session shown, in this exact order.
--- Account 2002 starts at 12,500. A withdraws 8,000; B withdraws 5,000
--- (13,000 in total, more than the balance, so one must be refused).
 -- Default isolation level: READ COMMITTED.
+--
+-- C1–C3: account 2002 starts at 12,500. A withdraws 8,000; B withdraws 5,000
+-- (13,000 in total, more than the balance, so one must be refused).
 -- =============================================================
 
 
@@ -64,6 +65,35 @@
 --    B unblocks: ERROR: Insufficient funds: balance 4500.00, requested 8000
 --    (B's function rolled itself back automatically; no ROLLBACK needed)
 -- Result: no double spend, without the caller having to remember to lock.
+-- Balances after C4: 2001 = 15500, 2002 = 4500, 2003 = 10000
+
+
+-- D1. DEADLOCK: two transfers lock accounts in opposite orders
+-- A: BEGIN;
+-- A: UPDATE accounts SET balance = balance - 100 WHERE account_id = 2001;   -- A locks 2001
+-- B: BEGIN;
+-- B: UPDATE accounts SET balance = balance - 100 WHERE account_id = 2002;   -- B locks 2002
+-- A: UPDATE accounts SET balance = balance + 100 WHERE account_id = 2002;   -- A waits for B
+-- B: UPDATE accounts SET balance = balance + 100 WHERE account_id = 2001;   -- B waits for A: cycle
+--    After ~1 s (deadlock_timeout): ERROR: deadlock detected (B is cancelled)
+-- B: ROLLBACK;
+--    A unblocks
+-- A: ROLLBACK;                                                             -- demo leaves no changes
+-- Result: PostgreSQL's deadlock detector breaks the cycle; one transfer fails
+-- and would have to be retried.
+
+
+-- D2. FIX: CONSISTENT LOCK ORDERING (built into transfer_funds)
+-- transfer_funds() locks both accounts in ascending account_id order,
+-- so opposite-direction transfers queue instead of deadlocking.
+-- A: BEGIN;
+-- A: SELECT transfer_funds(2001, 2002, 100, 'DEMO-D2A');                  -- locks 2001, then 2002
+-- B: BEGIN;
+-- B: SELECT transfer_funds(2002, 2001, 100, 'DEMO-D2B');                  -- waits for 2001 (no cycle)
+-- A: COMMIT;
+--    B completes
+-- B: COMMIT;
+-- Result: both transfers succeed; net change zero.
 
 
 -- FINAL CHECK
