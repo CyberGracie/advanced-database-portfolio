@@ -106,9 +106,37 @@ Timings mean little without repeated runs, a control, and the execution plan bes
 
 ---
 
-## Day 4 – Transactions and concurrency
+## Day 4 – Transactions and concurrency (17–18 October 2026)
 
-To be completed after the transactions and concurrency exercises.
+I built the core banking operations as PostgreSQL functions (deposit, internal transfer,
+interbank transfer and reversal), each running as one transaction, and tested them on three
+demo accounts.
+
+The single-session demos behaved as designed: a failed transfer saved nothing, a retried
+request with the same idempotency key did not debit twice, and a teller was refused when
+trying to approve a reversal. One detail tied back to Day 2: a transfer I rolled back in
+psql had been given transaction ID 502005, and the next real transaction got 502006. The
+rollback undid the transfer but not the ID, so real transaction IDs will always have gaps.
+
+The concurrency demos were the most useful part of the course so far. In C1, I watched a
+₦8,000 withdrawal disappear: both sessions read ₦12,500 and each wrote back its own result,
+so the second overwrote the first. Nothing raised an error. The only thing that caught it
+was the reconciliation query from Day 2, which flagged account 2002 (stored 7,500, ledger
+12,500). That made the case for reconciliation better than any explanation.
+
+`FOR UPDATE` fixed it by making the second session wait, and `SERIALIZABLE` fixed it by
+rejecting the second update outright. Seeing one session simply hang until the other
+committed made locking concrete. The deadlock demo showed PostgreSQL cancelling one
+transaction after about a second, and the ordered-locking version showed the same two
+transfers queueing and both succeeding.
+
+Practical problems: I typed the database name at psql's Username prompt, so login failed.
+I then switched to pgAdmin's PSQL Tool, which connected without a password.
+
+**Takeaway:** concurrency bugs are silent, so they have to be designed out (locking, lock
+ordering, isolation levels) and caught after the fact (reconciliation, audit trail). The
+audit log showed every change I made to account 2002, which is exactly the trail an
+investigator would need after a real incident.
 
 ---
 
