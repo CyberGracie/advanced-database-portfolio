@@ -1,9 +1,26 @@
 -- =============================================================
 -- NairaFlow – export relational data as MongoDB documents
 -- MIT 8103 Portfolio 4: NoSQL and Advanced Data Models
--- Each view returns one JSON document per row (column "doc").
+-- Each view returns one MongoDB Extended JSON document per row:
+--   money -> {"$numberDecimal": "..."}  (exact Decimal128, never floating point)
+--   dates -> {"$date": "..."}           (real BSON Date values)
 -- json_strip_nulls removes empty fields, so documents stay sparse.
 -- =============================================================
+
+-- Helpers: wrap values in Extended JSON type markers (NULL stays NULL)
+CREATE OR REPLACE FUNCTION ejson_date(ts timestamp)
+RETURNS json LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN ts IS NULL THEN NULL
+              ELSE json_build_object('$date', to_char(ts, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
+         END
+$$;
+
+CREATE OR REPLACE FUNCTION ejson_decimal(n numeric)
+RETURNS json LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN n IS NULL THEN NULL
+              ELSE json_build_object('$numberDecimal', n::text)
+         END
+$$;
 
 -- 1. CUSTOMER PROFILES: customer + KYC documents + accounts, embedded in ONE document
 CREATE OR REPLACE VIEW export_customers AS
@@ -13,21 +30,21 @@ SELECT json_strip_nulls(json_build_object(
   'email',       c.email,
   'phone',       c.phone,
   'bvn',         c.bvn,
-  'dateOfBirth', c.date_of_birth,
+  'dateOfBirth', ejson_date(c.date_of_birth::timestamp),
   'kycStatus',   c.kyc_status,
-  'createdAt',   c.created_at,
+  'createdAt',   ejson_date(c.created_at),
   'kyc', (SELECT json_agg(json_build_object(
                    'type',       k.document_type,
                    'number',     k.document_number,
                    'verifiedBy', k.verified_by,
-                   'verifiedAt', k.verified_at))
+                   'verifiedAt', ejson_date(k.verified_at)))
           FROM kyc_documents k
           WHERE k.customer_id = c.customer_id),
   'accounts', (SELECT json_agg(json_build_object(
                         'accountId',     a.account_id,
                         'accountNumber', a.account_number,
                         'type',          at.type_name,
-                        'balance',       a.balance,
+                        'balance',       ejson_decimal(a.balance),
                         'currency',      a.currency,
                         'status',        a.status) ORDER BY a.account_id)
                FROM accounts a
@@ -43,10 +60,10 @@ SELECT json_strip_nulls(json_build_object(
   '_id',         t.transaction_id,
   'reference',   t.reference,
   'type',        t.transaction_type,
-  'amount',      t.amount,
+  'amount',      ejson_decimal(t.amount),
   'status',      t.status,
-  'createdAt',   t.created_at,
-  'completedAt', t.completed_at,
+  'createdAt',   ejson_date(t.created_at),
+  'completedAt', ejson_date(t.completed_at),
   'transfer', CASE WHEN tr.transfer_id IS NULL THEN NULL ELSE json_build_object(
                 'fromAccount',        tr.source_account_id,
                 'toAccount',          tr.destination_account_id,
@@ -63,8 +80,8 @@ LEFT JOIN (
          json_agg(json_build_object(
            'accountId',    account_id,
            'entry',        entry_type,
-           'amount',       amount,
-           'balanceAfter', balance_after) ORDER BY entry_id) AS ledger
+           'amount',       ejson_decimal(amount),
+           'balanceAfter', ejson_decimal(balance_after)) ORDER BY entry_id) AS ledger
   FROM ledger_entries
   WHERE created_at >= '2026-09-01'
   GROUP BY transaction_id
