@@ -140,9 +140,36 @@ investigator would need after a real incident.
 
 ---
 
-## Day 5 – NoSQL and advanced data models
+## Day 5 – NoSQL and advanced data models (18–20 October 2026)
 
-To be completed after the NoSQL exercises.
+I modelled NairaFlow in MongoDB Atlas by exporting my PostgreSQL data as documents: each
+customer with their accounts and KYC embedded, and each transaction with its ledger lines
+embedded.
+
+Getting connected took longer than the modelling. Compass first failed with *bad auth*, which I
+fixed by resetting the password and entering it separately from the connection string. Then it
+failed with a DNS error (`queryTxt ESERVFAIL`), and later with a TLS error because my IP address
+had changed and Atlas's access list rejected me. That last one showed defence in depth in action:
+the network layer refused me before my password was even checked.
+
+My first export would have stored money as floating point and dates as text. Switching to
+Extended JSON meant balances came in as exact Decimal128 values, the same lesson as NUMERIC
+versus FLOAT on Day 2. The payoff came in D3: daily totals computed in MongoDB matched
+PostgreSQL exactly, to the kobo, which proved the migration lost nothing.
+
+The most satisfying result was D4. I planted a ₦55,000 → ₦54,000 → ₦53,000 ring between three
+accounts, and `$graphLookup` found it by following money from account to account. I also learned
+why I needed a ₦50,000 threshold: with 300,000 random small transfers, almost every account
+connects to every other within a few hops.
+
+Git caught me out too: my `.gitignore` did not stop a file that had already been committed, so I
+had to untrack it with `git rm --cached`. Later I found the Portfolio 3 README had been pasted into
+the Portfolio 4 folder by mistake, another reminder to check each file before committing.
+
+**Takeaway:** the document model is excellent for reading a whole customer at once and for
+flexible or connected data, but it gives up the cross-table integrity that makes PostgreSQL the
+right place for the ledger. For a bank, the answer is both: PostgreSQL as the system of record,
+MongoDB for profiles and analytics.
 
 ---
 
