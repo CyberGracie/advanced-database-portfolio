@@ -210,39 +210,39 @@ price of not losing customers' transactions.
 
 ---
 
-## Day 7 – Final documentation and overall reflection
-
-*Draft written after Day 3; to be revised once Days 4–6 are complete.*
+## Day 7 – Final documentation and overall reflection (21 October 2026)
 
 Building NairaFlow showed me that database work is less about writing tables and queries
-and more about translating business rules into structure, then proving the structure
-behaves as intended.
+and more about translating business rules into structure, then proving that the structure
+behaves as intended under real conditions.
 
-The decision I am most confident about is enforcing key rules inside the database. In
-testing, the `CHECK` constraint rejected an invalid account type, the append-only trigger
-blocked an edit to the ledger, and reconciliation found zero mismatches between stored
-balances and the ledger.
+**Design choices I am most confident about.** Enforcing the important rules inside the
+database: `CHECK` constraints, foreign keys, an append-only ledger and audit triggers. Every one
+of them was tested: an invalid account type was rejected, a ledger edit was blocked, and the
+reconciliation query found zero mismatches. The same reconciliation query later caught the
+lost update I created on purpose in Portfolio 3, which proved its value better than any
+explanation. Putting transfer logic in one database function, locking accounts in ascending
+ID order, meant that double spends and deadlocks were prevented by design rather than by
+callers remembering to lock.
 
-The optimisation work challenged my assumptions most. Q1 became about 725× faster, but Q5
-showed that reading fewer pages does not always mean a faster query, and the indexes
-roughly doubled write time. I now judge performance by plans and repeated measurements,
-not by whether an index exists.
+**What challenged my assumptions.** Performance work taught me to trust plans and repeated
+measurements rather than intuition. An index made the account statement about 725× faster,
+yet forcing an index on the reconciliation query read 70% fewer pages and was no faster, and
+the ledger index roughly doubled insert time. In MongoDB, safer write concerns cost almost
+nothing within one region, which was the opposite of what I expected.
 
-Several problems were of my own making: the failed seed transaction and the 50,000 test
-rows I committed by mistake. Both taught me to check transaction state before acting and
-to verify what has actually been committed. In production, I would add isolated test data,
-explicit transaction checks and restricted database roles.
+**Problems I caused and fixed.** A failed seed run that left sequences advanced; 50,000 test
+rows committed by mistake and removed through a controlled trigger override; a `.gitignore`
+that did not work because of leading spaces; a README pasted into the wrong folder; and three
+different MongoDB connection failures (authentication, DNS and the IP access list). Each one
+taught me to check state and evidence before moving on.
 
-With more time, I would automate tests for the constraints, triggers, transfer rules and
-reconciliation, script the collection of plans and timings, and test the design under
-heavier concurrent load.
+**Connection to my background.** Diagnosing the hidden 25P02 error, the unused indexes and
+the Atlas connection failures used the same habits I use in incident response: follow the
+evidence, test a hypothesis, separate the symptom from the cause. My security background
+also made me notice auditability, least privilege, network restrictions and the risk of
+admin users bypassing controls, all of which came up in practice.
 
-This work connects directly to my background in security operations. Diagnosing the
-25P02 error and the unused indexes used the same habits I use in incident response:
-following the evidence, testing a hypothesis, and separating the symptom from the cause.
-That background also makes me notice auditability, least privilege and the risk of
-excessive admin access, all of which came up in this portfolio.
-
-Before submitting, I will check the ER diagram against the final schema, confirm the
-scripts run from scratch, and make sure every claim in the documentation is backed by a
-plan, timing or screenshot in the repository.
+**With more time,** I would automate tests for the constraints, transfer rules and
+reconciliation, implement PostgreSQL streaming replication and change data capture into
+MongoDB, and test the design under heavier concurrent load and across regions.

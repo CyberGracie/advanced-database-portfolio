@@ -38,6 +38,24 @@ Full write-up: **[nosql-design.md](nosql-design.md)**
 | Aggregation | Six daily totals identical to PostgreSQL |
 | Graph traversal | Ring 2001 → 2002 → 2003 → 2001 detected |
 
+## Evidence
+
+| Screenshot (`screenshots/`) | What it shows |
+| --- | --- |
+| `a-compass-connected.png` | Compass connected to the Atlas cluster |
+| `b-export-plain-json.png`, `b-export-extended-json.png` | First export (plain JSON) and corrected export (Extended JSON) |
+| `b-customer-document-preview.png` | One customer exported as a document |
+| `c-collections-created.png` | Collections created with validation rules |
+| `c-import-customers.png`, `c-import-events.png`, `c-import-events-1.png` | 1,001 customers and 51,658 events imported |
+| `c-document-types.png`, `c-document-types-events.png` | Money stored as Decimal128, dates as BSON Date |
+| `c-validation-rejected.png` | Invalid customer rejected by `$jsonSchema` validation |
+| `c-indexes-customers.png`, `c-indexes-events.png` | Indexes on each collection |
+| `d1-profile-one-read.png`, `d1-explain.png` | Full profile in one read; EXPRESS_IXSCAN, 1 key / 1 document examined |
+| `d2-statement.png`, `d2-explain-index.png`, `d2-explain-collscan.png` | Statement query: 8 documents examined with the index vs 51,658 without |
+| `d3-aggregation.png`, `d3-postgres-crosscheck.png` | Daily totals in MongoDB and identical totals in PostgreSQL |
+| `d4-fraud-ring-detected.png` | `$graphLookup` finds the 2001 → 2002 → 2003 → 2001 ring |
+| `d5-flexible-schema.png` | New `trustedDevices` field added to one customer without migration |
+
 ## How to reproduce
 
 1. With Portfolios 1–3 complete in PostgreSQL, run `export-views.sql`.

@@ -32,6 +32,18 @@ Full write-up: **[distributed-design.md](distributed-design.md)**
 | Impossible write concern | `w:5` rejected: *Not enough data-bearing nodes* |
 | Recommendation | `w:"majority"` and majority reads for all money movement |
 
+## Evidence
+
+| Screenshot (`screenshots/`) | What it shows |
+| --- | --- |
+| `atlas-replica-set-hello.png` | 18 October: three hosts, primary `shard-00-02` |
+| `a-atlas-nodes.png`, `a-replica-set-summary.png` | 21 October: primary is now `shard-00-01` (failover) |
+| `b1-read-from-primary.png` | Primary read served by `shard-00-01` |
+| `b2-read-from-secondary.png` | Secondary read served by `shard-00-00` |
+| `c1-write-concern-timings.png` | Median insert times for `w:1`, `w:"majority"` and `w:3` |
+| `c2-unsatisfiable-write-concern.png` | `w:5` rejected: *Not enough data-bearing nodes* |
+| `c3-majority-read.png`, `c2-c3-c4-results.png` | Majority read and test clean-up |
+
 ## How to reproduce
 
 1. Connect to the Atlas cluster in MongoDB Compass and open the MongoDB shell.

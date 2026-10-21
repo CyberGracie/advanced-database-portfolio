@@ -34,6 +34,17 @@ Full analysis: **[analysis.md](analysis.md)**
 | [analysis.md](analysis.md) | Findings, costs, recommendations and limitations |
 | [screenshots/](screenshots/) | Query results, plans and index sizes |
 
+## Evidence
+
+| Screenshot (`screenshots/`) | What it shows |
+| --- | --- |
+| `q1-result.png` … `q6-result.png` | Results of each business query |
+| `q1-plan-before.png`, `q2-plan-before.png` | Parallel sequential scans before indexing (hundreds of thousands of rows removed by filter) |
+| `q1-plan-after.png` … `q6-plan-after.png` | Plans after indexing: index scans for Q1/Q2, index-only and bitmap scans for Q4/Q6, unchanged plans for Q3/Q5 |
+| `index-sizes.png` | Size of each index (partial index I2 = 344 kB) |
+
+Full text plans are in `plans/before/` and `plans/after/`, including `q5-forced-index-plan.txt`.
+
 ## How to reproduce
 
 1. Build the database with Portfolio 1 (`schema.sql` → `seed.sql` → `audit-triggers.sql`).
