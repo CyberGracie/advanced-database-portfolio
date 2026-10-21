@@ -173,9 +173,40 @@ MongoDB for profiles and analytics.
 
 ---
 
-## Day 6 – Distributed and cloud databases
+## Day 6 – Distributed and cloud databases (21 October 2026)
 
-To be completed after the distributed and cloud database exercises.
+My MongoDB Atlas cluster turned out to be the best evidence I had. It is a three-server
+replica set in AWS Paris: one primary that takes writes and two secondaries that copy it.
+
+The most interesting finding happened without me doing anything. On 18 October, `db.hello()`
+showed `shard-00-02` as the primary. On 21 October, the Atlas overview showed `shard-00-01` as
+primary. Somewhere in between, the primary stepped down, the other servers held an election,
+and a new primary took over, with no change to my data or connection string. I had expected
+to only be able to describe failover on the free tier, but comparing two screenshots let me
+show it had actually happened.
+
+Read preferences made the replication visible: the same query was answered by `shard-00-01`
+when reading from the primary and by `shard-00-00` when reading from a secondary.
+
+The write-concern timings surprised me. I expected `w:"majority"` and `w:3` to be clearly
+slower than `w:1`, but all three took about 115–120 ms, and `w:3` was even marginally faster.
+Almost all of that time is the round trip between Lagos and Paris; copying between servers in
+the same region costs only a few milliseconds. So for this setup, the safest option is
+effectively free. Asking for `w:5` on three servers was refused outright, which I liked:
+the database fails loudly rather than pretending a write is safe.
+
+Two small slips: the shell had switched to the `test` database after reconnecting, so my
+first read-preference tests ran against an empty collection, and I saved one screenshot in
+the wrong portfolio folder. Both were quick to fix.
+
+I originally planned to set up PostgreSQL replication with Docker, but decided the Atlas
+replica set already provided stronger, real evidence. PostgreSQL replication and sharding are
+covered as designs instead.
+
+**Takeaway:** the failover I observed is exactly when `w:1` is dangerous. A write acknowledged
+by the old primary but not yet copied would have been lost in the election. For money, NairaFlow
+must use majority writes and majority reads, and accept the small latency cost as part of the
+price of not losing customers' transactions.
 
 ---
 
