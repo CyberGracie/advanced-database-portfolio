@@ -9,6 +9,7 @@
 Six business queries were measured before and after adding four targeted indexes.
 Selective queries became **330–725× faster**; bulk aggregations did not benefit, and an
 experiment forcing an index plan showed why. The indexes roughly doubled ledger insert time.
+A materialised view cut the dashboard query (Q4) to 0.27 ms, about 350x faster than the index.
 
 | Query | Before (ms) | After (ms) | Change |
 | --- | --- | --- | --- |
@@ -28,6 +29,7 @@ Full analysis: **[analysis.md](analysis.md)**
 | [queries.sql](queries.sql) | The six business queries (Q1–Q6) |
 | [indexes.sql](indexes.sql) | The four indexes, each with its rationale |
 | [write-cost-test.sql](write-cost-test.sql) | Insert test used to measure index write cost |
+| [materialized-view.sql](materialized-view.sql) | Materialised view for Q4, with correctness, staleness and refresh checks |
 | [timings.md](timings.md) | Raw timings: three runs per query, before and after |
 | [plans/before](plans/before) | Execution plans with no extra indexes |
 | [plans/after](plans/after) | Execution plans with indexes, plus the forced-index experiment |
@@ -42,6 +44,9 @@ Full analysis: **[analysis.md](analysis.md)**
 | `q1-plan-before.png`, `q2-plan-before.png` | Parallel sequential scans before indexing (hundreds of thousands of rows removed by filter) |
 | `q1-plan-after.png` … `q6-plan-after.png` | Plans after indexing: index scans for Q1/Q2, index-only and bitmap scans for Q4/Q6, unchanged plans for Q3/Q5 |
 | `index-sizes.png` | Size of each index (partial index I2 = 344 kB) |
+| `mv-q4-plan.png` | Q4 from the materialised view: 0.268 ms |
+| `mv-correctness.png` | The view returns exactly the live query's rows (0 differences) |
+| `mv-stale.png`, `mv-refreshed.png` | The view is stale after a new deposit until `REFRESH` runs |
 
 Full text plans are in `plans/before/` and `plans/after/`, including `q5-forced-index-plan.txt`.
 

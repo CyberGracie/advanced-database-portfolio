@@ -246,3 +246,17 @@ admin users bypassing controls, all of which came up in practice.
 **With more time,** I would automate tests for the constraints, transfer rules and
 reconciliation, implement PostgreSQL streaming replication and change data capture into
 MongoDB, and test the design under heavier concurrent load and across regions.
+
+---
+
+## Follow-up (26 October 2026)
+
+After the five portfolios were done I added three more pieces of evidence. A materialised view
+dropped the finance dashboard query from 93 ms to about 0.27 ms, which drove home the difference
+between an index, which still reads and groups the rows, and a pre-computed result, which just
+reads the answer; the staleness test showed the catch, that the view is a snapshot until it is
+refreshed. On the Atlas cluster I ran a real multi-document transaction, a transfer that debits
+one account and credits another, and watched it abort cleanly when the balance was too low, with
+neither side changing. I also measured three shard keys against my own data and saw a date-range
+key pile 99.7% of new writes onto one shard, which made the hot-shard idea concrete rather than
+theoretical.

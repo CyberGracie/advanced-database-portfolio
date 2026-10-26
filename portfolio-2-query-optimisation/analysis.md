@@ -93,7 +93,31 @@ estimate (about 29,000 for the forced plan against about 23,500) correctly predi
 | **Storage** | The four indexes use about **79 MB** in total (52 MB + 25 MB + 2 MB + 0.3 MB; see `screenshots/index-sizes.png`). The partial index I2 is only **344 kB**, about **75× smaller** than I3 (25 MB), even though both index `transactions.created_at`, because I2 holds only failed transactions. I1 is the largest (52 MB) because it covers every ledger row and also stores two extra columns to enable index-only scans, a cost the Q5 experiment showed does not pay off for reconciliation. |
 | **Foreign key checks** | Even before indexing, about 1,620 ms of the 1,948 ms insert was spent checking the two foreign keys on `ledger_entries` (shown as constraint triggers in the plan). Integrity has a write cost too. |
 
-## 6. Recommendations
+## 6. Materialised view for the finance dashboard (Q4)
+
+Q4 is a reporting query, so its result changes slowly and can be pre-computed. I built a
+materialised view, `mv_daily_totals`, that stores daily counts and totals by transaction
+type, with a unique index on `(day, transaction_type)` so it can be refreshed without
+blocking readers.
+
+| Q4 September totals | Plan | Execution time |
+| --- | --- | --- |
+| No index | Parallel Seq Scan + GroupAggregate | 366.663 ms |
+| With index I3 | Index Only Scan + GroupAggregate | 92.998 ms |
+| From the materialised view | Bitmap Index Scan on 84 pre-computed rows | **0.268 ms** |
+
+The view reads 10 pages instead of thousands, because the aggregation is already done. That is
+about 350x faster than the index and roughly 1,370x faster than the original query
+(`mv-q4-plan.png`).
+
+It returns exactly what the live query returns: the September rows matched in both directions
+with no difference (`mv-correctness.png`). The catch is staleness. After a new deposit the live
+table showed one more transaction than the view, which still held the old count
+(`mv-stale.png`); `REFRESH MATERIALIZED VIEW CONCURRENTLY` brought them back into step
+(`mv-refreshed.png`). A dashboard refreshed on a schedule trades a few hours of lag for
+near-instant reads, which is fine for finance reporting but never for a live balance.
+
+## 7. Recommendations
 
 1. **Keep I1 and I2.** Statements and failure investigations run constantly; a 2× slower
    ledger insert is an acceptable price for 330–725× faster reads, because each account is
@@ -106,12 +130,14 @@ estimate (about 29,000 for the forced plan against about 23,500) correctly predi
 4. **Reconciliation (Q5) needs a different approach, not an index:** reconcile only ledger
    entries since the last successful audit, or maintain a daily balance summary table, so
    each run processes thousands of rows instead of 772,000.
-5. **For dashboards (Q4),** a materialised view refreshed nightly would make the query
-   near-instant, at the cost of slightly stale data.
+5. **For dashboards (Q4), the materialised view in section 6 is the answer:** it cuts Q4 to
+   0.27 ms, about 350x faster than the index, in exchange for a scheduled refresh and slightly
+   stale data.
 
-## 7. Limitations
+## 8. Limitations
 
 - Timings come from a laptop with other software running; medians reduce, but do not remove, this noise.
 - Seed data is uniformly random. Real banking data is skewed (a few very active accounts),
   which would change selectivity and possibly plan choices.
 - The write test was run once before and once after indexing.
+- The materialised view trades freshness for speed, so it is safe for reporting only, never for a live balance.

@@ -12,4 +12,5 @@
 **Control (after VACUUM ANALYZE, no indexes):** Q1 = 341.660 ms<br>
 **Write test (50,000 ledger inserts), before indexes:** 1,947.782 ms<br>
 **Write test (50,000 ledger inserts), after indexes:** 3,785.701 ms<br>
-**Q5 with index forced (enable_seqscan = off):** 635.763 ms
+**Q5 with index forced (enable_seqscan = off):** 635.763 ms<br>
+**Q4 from the materialised view `mv_daily_totals`:** 0.268 ms (vs 92.998 ms with index I3)

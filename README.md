@@ -101,5 +101,6 @@ Each portfolio folder has a README with step-by-step instructions. The work buil
 - MongoDB, Inc. (2026) *MongoDB Manual*. Available at: https://www.mongodb.com/docs/manual/ (Accessed: 21 October 2026).
 - PostgreSQL Global Development Group (2026) *PostgreSQL 18 Documentation*. Available at: https://www.postgresql.org/docs/18/ (Accessed: 21 October 2026).
 - Holistics (2026) *DBML – Database Markup Language*. Available at: https://dbml.dbdiagram.io/docs/ (Accessed: 21 October 2026).
+- Federal Republic of Nigeria (2023) *Nigeria Data Protection Act, 2023*. Abuja: Federal Government of Nigeria.
 
 AI assistance is declared separately in [ai-use-log.md](ai-use-log.md).

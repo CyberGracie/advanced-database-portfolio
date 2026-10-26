@@ -19,6 +19,8 @@ Full write-up: **[distributed-design.md](distributed-design.md)**
 | --- | --- |
 | [replication-tests.js](replication-tests.js) | Replica set summary, read preferences, write concerns, majority read |
 | [distributed-design.md](distributed-design.md) | Results, failover, CAP trade-offs, sharding design, cloud security |
+| [transaction-test.js](transaction-test.js) | Multi-document transfer transaction: commit, abort, isolation |
+| [shard-key-analysis.js](shard-key-analysis.js) | Three candidate shard keys measured on the real data |
 | [screenshots/](screenshots/) | Evidence for every test |
 
 ## Key results
@@ -31,6 +33,8 @@ Full write-up: **[distributed-design.md](distributed-design.md)**
 | Write concerns | `w:1` 117 ms, `w:majority` 121 ms, `w:3` 116 ms (median of 15): no meaningful difference within one region |
 | Impossible write concern | `w:5` rejected: *Not enough data-bearing nodes* |
 | Recommendation | `w:"majority"` and majority reads for all money movement |
+| Multi-document transaction | A transfer commits or aborts atomically; an uncommitted change is invisible to other readers |
+| Shard key | Range on `createdAt` sends 99.7% of new writes to one shard; hashed `accountId` spreads evenly |
 
 ## Evidence
 
@@ -43,6 +47,8 @@ Full write-up: **[distributed-design.md](distributed-design.md)**
 | `c1-write-concern-timings.png` | Median insert times for `w:1`, `w:"majority"` and `w:3` |
 | `c2-unsatisfiable-write-concern.png` | `w:5` rejected: *Not enough data-bearing nodes* |
 | `c3-majority-read.png`, `c2-c3-c4-results.png` | Majority read and test clean-up |
+| `t1-transaction-commit.png`, `t2-transaction-abort.png`, `t3-transaction-isolation.png` | Multi-document transfer: commit, abort, isolation |
+| `shard-key-analysis.png` | Three shard keys measured against the real 51,658 events |
 
 ## How to reproduce
 

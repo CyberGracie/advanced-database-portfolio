@@ -98,24 +98,54 @@ PostgreSQL makes the same choice through **synchronous replication**
 (`synchronous_commit = on` with `synchronous_standby_names`): a commit waits until a standby
 confirms it, the equivalent of `w:"majority"`.
 
-## 7. Sharding NairaFlow at scale
+## 7. Multi-document ACID transactions
+
+MongoDB supports multi-document transactions on a replica set, which NairaFlow needs for a
+transfer: debit one document, credit another, record an event, all or nothing. I ran a transfer
+between two customer documents inside a session with `readConcern: "snapshot"` and
+`writeConcern: "majority"` (`transaction-test.js`).
+
+| Test | What happened |
+| --- | --- |
+| Successful transfer (T1) | 1,000 moved from account 1 to account 2; both balances changed and one event was written, under one commit (`t1-transaction-commit.png`) |
+| Transfer over the balance (T2) | The debit was refused, the transaction aborted, and **neither** balance changed; no event was written (`t2-transaction-abort.png`) |
+| Isolation (T3) | A debit inside an open transaction read 500 lower inside the session but unchanged outside it; after the abort it was unchanged everywhere (`t3-transaction-isolation.png`) |
+
+So the three writes commit together or not at all, and an uncommitted change stays invisible to
+other readers until it commits. This is the guarantee PostgreSQL gives `transfer_funds()` in
+Portfolio 3, now across a three-node cluster rather than one machine. It costs more than a
+single-document update, so MongoDB would own transfers only if the ledger did not already live
+in PostgreSQL; here PostgreSQL stays the system of record.
+
+## 8. Sharding NairaFlow at scale
 
 Replication copies **all** data to every node; **sharding** splits data across nodes so that
 storage and write throughput scale horizontally. NairaFlow does not need sharding at
 1,000 customers, but a national-scale bank might.
 
-### 7.1 MongoDB shard keys
+### 8.1 MongoDB shard keys, measured on the real data
 
-| Collection | Proposed shard key | Reason |
+`shard-key-analysis.js` simulated splitting the 51,658 transaction events across three shards
+under three candidate keys, measuring both how evenly all documents spread and where the
+newest 5,000 writes land (`shard-key-analysis.png`):
+
+| Candidate shard key | All documents (A / B / C) | Newest 5,000 writes (A / B / C) |
 | --- | --- | --- |
-| `customers` | Hashed `_id` | Spreads customers evenly; profile lookups by `_id` go to one shard |
-| `transaction_events` | `{ primaryAccountId: 1, createdAt: 1 }` | A statement for one account stays on one shard, in date order |
+| Range on `createdAt` | 56.5 / 43.5 / 0.0 % | 0.0 / 99.7 / 0.3 % |
+| Range on `accountId` | 33.4 / 33.4 / 33.2 % | 32.9 / 34.1 / 33.0 % |
+| Hashed `accountId` | 34.7 / 30.7 / 34.6 % | 34.5 / 29.9 / 35.6 % |
 
-Two keys to **avoid**: `createdAt` alone, because every new transaction would land on the same
-shard (a "hot shard"); and `ledger.accountId`, because a shard key cannot be an array field. A
-top-level `primaryAccountId` field would have to be added to each event.
+Range on `createdAt` is the worst choice: one shard sits almost empty (the data stops at the
+end of September) and **99.7 % of new writes hit a single shard**, the classic hot-shard
+problem seen here in real numbers. Both account-based keys spread the stored data evenly, but a
+range on `accountId` would send every newly opened account to the highest range, so **hashed
+`accountId`** is the safer key because it spreads new writes as well as old data.
 
-### 7.2 PostgreSQL
+`ledger.accountId` cannot be a shard key because it is an array field; a transaction's
+`transfer.fromAccount`, or a top-level `primaryAccountId` copied onto each event, would be used
+instead.
+
+### 8.2 PostgreSQL
 
 PostgreSQL can be distributed with the **Citus** extension, sharding `accounts`,
 `ledger_entries` and `transfers` by `account_id` and keeping small tables (`account_types`,
@@ -124,7 +154,7 @@ accounts on different shards**: it must update two nodes atomically, which needs
 commit** (slower) or a **saga** (a sequence of local transactions with compensating steps,
 like the reversals in Portfolio 3).
 
-## 8. Replicating PostgreSQL (design)
+## 9. Replicating PostgreSQL (design)
 
 PostgreSQL was run as a single instance in this portfolio. In production, NairaFlow would use:
 
@@ -135,7 +165,7 @@ PostgreSQL was run as a single instance in this portfolio. In production, NairaF
    from PostgreSQL into MongoDB. This fixes the "stale snapshot" risk identified in
    Portfolio 4, where MongoDB balances only reflect the moment of export.
 
-## 9. Cloud deployment and security
+## 10. Cloud deployment and security
 
 | Control | Observed in this portfolio | Production recommendation |
 | --- | --- | --- |
@@ -150,10 +180,10 @@ PostgreSQL was run as a single instance in this portfolio. In production, NairaF
 Under the **shared responsibility model**, the provider secures the infrastructure; NairaFlow
 remains responsible for network rules, users, roles, encryption keys and its own data.
 
-## 10. Limitations
+## 11. Limitations
 
 - The free tier does not allow failover to be triggered on demand; failover was observed
   rather than tested.
-- Sharding and PostgreSQL replication are designed, not implemented.
+- Sharding is measured on exported data but not run on a live sharded cluster; PostgreSQL replication is designed, not implemented.
 - All servers are in one region, so cross-region latency was not measured.
 - Timings were taken from a single location and network.
